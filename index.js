@@ -1,4 +1,5 @@
-const express = require('express')
+const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express()
 const port = process.env.PORT || 5000;
@@ -14,6 +15,7 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.18vqa3g.mongodb.net/?retryWrites=true&w=majority`;
 
 
+
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
     serverApi: {
@@ -27,6 +29,60 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
+
+        const userCollection = client.db('userDB').collection('user');
+        const taskCollection = client.db('userDB').collection('tasks');
+
+
+        //create user on database
+        app.post('/user', async (req, res) => {
+            const users = req.body;
+            //insert user email if it is not exist in current database
+            const query = { email: users.email }
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ message: 'user already exists', insertedId: null });
+            }
+            console.log(users);
+            const result = await userCollection.insertOne(users);
+            res.send(result);
+        })
+
+
+        //read/get user from database
+        app.get('/user', async (req, res) => {
+            const cursor = userCollection.find();
+            const users = await cursor.toArray();
+            res.send(users);
+        })
+
+
+
+        app.post('/tasks', async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const result = await taskCollection.insertOne(user);
+            res.send(result);
+        })
+
+        app.get('/tasks', async (req, res) => {
+            const cursor = taskCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+
+
+
+
+
+
+
+
+
+
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
